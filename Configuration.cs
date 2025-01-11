@@ -30,7 +30,7 @@ namespace Chameleon
 
         static ConfigFile configFile;
 
-        internal static ConfigEntry<bool> fancyEntranceDoors, recolorRandomRocks, doorLightColors, rainyMarch, eclipsesBlockMusic, autoAdaptSnow, powerOffBreakerBox, powerOffWindows, planetPreview, snowyGiants, fixDoorMeshes, fancyFoliage, fancyShrouds, fixDoorSounds, fogReprojection, windowVariants, fixTitanVolume, fixArtificeVolume;
+        internal static ConfigEntry<bool> fancyEntranceDoors, recolorRandomRocks, doorLightColors, rainyMarch, eclipsesBlockMusic, autoAdaptSnow, powerOffBreakerBox, powerOffWindows, planetPreview, giantSkins, fixDoorMeshes, fancyFoliage, fancyShrouds, fogReprojection, windowVariants, fixTitanVolume, fixArtificeVolume;
         internal static ConfigEntry<GordionStorms> stormyGordion;
         internal static ConfigEntry<FogQuality> fogQuality;
         internal static ConfigEntry<float> weatherAmbience;
@@ -124,11 +124,11 @@ namespace Chameleon
                 true,
                 "Prevents the morning/afternoon ambience music from playing during Eclipsed weather, which has its own ambient track.");
 
-            snowyGiants = configFile.Bind(
+            giantSkins = configFile.Bind(
                 "Exterior",
-                "SnowyGiants",
+                "GiantSkins",
                 true,
-                "When the surface is snowy, Forest Keepers will blend in a little better with the environment.\nIf you are experiencing issues with giants and have other skin mods installed, you should probably disable this setting.");
+                "When the surface is snowy, Forest Keepers will blend in a little better with the environment. They will also appear more charred after being burnt to death.\nIf you are experiencing issues with giants and have other skin mods installed, you should probably disable this setting.");
         }
 
         static void InteriorConfig()
@@ -150,12 +150,6 @@ namespace Chameleon
                 "FixDoorMeshes",
                 true,
                 "Fixes the glass on the steel doors in factories (and some custom interiors) to show on both sides. Also fixes doorknobs looking incorrect on one side.");
-
-            fixDoorSounds = configFile.Bind(
-                "Interior",
-                "FixDoorSounds",
-                true,
-                "Fixes backwards open/close sounds on factory doors, breaker boxes, and storage locker doors.");
 
             weatherAmbience = configFile.Bind(
                 "Interior",
@@ -226,14 +220,19 @@ namespace Chameleon
                     int weight = -1;
                     if (moonAndWeight.Length == 2 && int.TryParse(moonAndWeight[1], out weight))
                     {
-                        MoonCavernMapping mapping = new()
+                        if (weight != 0)
                         {
-                            moon = moonAndWeight[0].ToLower(),
-                            type = type,
-                            weight = (int)Mathf.Clamp(weight, 0f, 99999f)
-                        };
-                        mappings.Add(mapping);
-                        Plugin.Logger.LogDebug($"Successfully added \"{mapping.moon}\" to \"{mapping.type}\" caves list with weight {mapping.weight}");
+                            MoonCavernMapping mapping = new()
+                            {
+                                moon = moonAndWeight[0].ToLower(),
+                                type = type,
+                                weight = (int)Mathf.Clamp(weight, 1f, 99999f)
+                            };
+                            mappings.Add(mapping);
+                            Plugin.Logger.LogDebug($"Successfully added \"{mapping.moon}\" to \"{mapping.type}\" caves list with weight {mapping.weight}");
+                        }
+                        else
+                            Plugin.Logger.LogDebug($"Skipping \"{weightedMoon}\" in \"{listName}\" because weight is 0");
                     }
                     else
                         Plugin.Logger.LogWarning($"Encountered an error parsing entry \"{weightedMoon}\" in the \"{listName}\" setting. It has been skipped");
@@ -291,6 +290,17 @@ namespace Chameleon
 
                 configFile.Remove(configFile["Exterior", "FancyShrouds"].Definition);
             }
+
+            if (giantSkins.Value)
+            {
+                if (!configFile.Bind("Exterior", "SnowyGiants", true, "Legacy setting, doesn't work").Value)
+                    giantSkins.Value = false;
+
+                configFile.Remove(configFile["Exterior", "SnowyGiants"].Definition);
+            }
+
+            configFile.Bind("Interior", "FixDoorSounds", true, "Legacy setting, doesn't work");
+            configFile.Remove(configFile["Interior", "FixDoorSounds"].Definition);
 
             configFile.Save();
         }
